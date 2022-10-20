@@ -176,10 +176,10 @@ IRAM_ATTR bool gui_touch_read(lv_indev_drv_t* indev_driver, lv_indev_data_t* dat
 
 void guiCalibrate(void)
 {
-#if TOUCH_DRIVER == 0x2046 //&& defined(USER_SETUP_LOADED)
-#ifdef TOUCH_CS
-    haspTouch.calibrate(gui_settings.cal_data);
-#endif
+// #if TOUCH_DRIVER == 0x2046 //&& defined(USER_SETUP_LOADED)
+//     uint16_t calData[] = { 239, 3926, 233, 265, 3856, 3896, 3714, 308};
+//     haspTouch.calibrate(calData);
+// #endif
 
     size_t len = sizeof(gui_settings.cal_data) / sizeof(gui_settings.cal_data[0]);
     for(int i = 0; i < len; i++) {
@@ -189,7 +189,7 @@ void guiCalibrate(void)
 
     delay(500);
     lv_obj_invalidate(lv_disp_get_layer_sys(NULL));
-#endif
+// #endif
 }
 
 // fast init

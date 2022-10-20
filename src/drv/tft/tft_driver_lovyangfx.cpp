@@ -139,31 +139,36 @@ static lgfx::Bus_SPI* init_spi_bus(Preferences* prefs)
     // #define HSPI_HOST   SPI3_HOST
     // #endif
 
-    switch(host) {
-#ifdef CONFIG_IDF_TARGET_ESP32
-        case 1:
-            // SPI_HOST (SPI1_HOST) is not supported by the SPI Master and SPI Slave driver on ESP32-S2 and later
-            LOG_DEBUG(TAG_TFT, F("%s - %d"), __FILE__, __LINE__);
-            cfg.spi_host = SPI_HOST;
-            break;
-#endif
-        case 2: // HSPI on ESP32 and FSPI on ESP32-S2
-            LOG_DEBUG(TAG_TFT, F("%s - %d"), __FILE__, __LINE__);
-#ifdef CONFIG_IDF_TARGET_ESP32
-            cfg.spi_host = HSPI_HOST;
-#elif CONFIG_IDF_TARGET_ESP32S2
-            cfg.spi_host = FSPI_HOST;
-#endif
-            break;
-        case 3:
-        default: // VSPI on ESP32 and HSPI on ESP32-S2
-            LOG_DEBUG(TAG_TFT, F("%s - %d"), __FILE__, __LINE__);
-#ifdef CONFIG_IDF_TARGET_ESP32
-            cfg.spi_host = VSPI_HOST;
-#elif CONFIG_IDF_TARGET_ESP32S2
-            cfg.spi_host = HSPI_HOST;
-#endif
-    }
+//     switch(host) {
+// #ifdef CONFIG_IDF_TARGET_ESP32
+//         case 1:
+//             // SPI_HOST (SPI1_HOST) is not supported by the SPI Master and SPI Slave driver on ESP32-S2 and later
+//             LOG_DEBUG(TAG_TFT, F("%s - %d"), __FILE__, __LINE__);
+//             #ifdef esp32_2432S028R
+//             cfg.spi_host = HSPI_HOST;
+//             #else
+//             cfg.spi_host = SPI_HOST;
+//             #endif
+//             break;
+// #endif
+//         case 2: // HSPI on ESP32 and FSPI on ESP32-S2
+//             LOG_DEBUG(TAG_TFT, F("%s - %d"), __FILE__, __LINE__);
+// #ifdef CONFIG_IDF_TARGET_ESP32
+//             cfg.spi_host = HSPI_HOST;
+// #elif CONFIG_IDF_TARGET_ESP32S2
+//             cfg.spi_host = FSPI_HOST;
+// #endif
+//             break;
+//         case 3:
+//         default: // VSPI on ESP32 and HSPI on ESP32-S2
+//             LOG_DEBUG(TAG_TFT, F("%s - %d"), __FILE__, __LINE__);
+// #ifdef CONFIG_IDF_TARGET_ESP32
+//             cfg.spi_host = VSPI_HOST;
+// #elif CONFIG_IDF_TARGET_ESP32S2
+//             cfg.spi_host = HSPI_HOST;
+// #endif
+//     }
+    cfg.spi_host = HSPI_HOST;
     bus->config(cfg); // The set value is reflected on the bus.
     bus->init();
     return bus;
@@ -191,8 +196,7 @@ static void configure_panel(lgfx::Panel_Device* panel, Preferences* prefs)
         prefs->getUInt("offset_rotation", TFT_OFFSET_ROTATION); // Offset of the rotation 0 ~ 7 (4 ~ 7 is upside down)
 
     cfg.dummy_read_pixel = prefs->getUInt("dummy_read_pixel", 8); // Number of dummy read bits before pixel read
-    cfg.dummy_read_bits =
-        prefs->getUInt("dummy_read_bits", 1);         // bits of dummy read before reading data other than pixels
+    cfg.dummy_read_bits = 8;       // bits of dummy read before reading data other than pixels
     cfg.readable = prefs->getBool("readable", false); // true if data can be read
 
     // #ifdef INVERT_COLORS   // This is configurable un Web UI
@@ -309,36 +313,26 @@ lgfx::ITouch* _init_touch(Preferences* preferences)
     // break;
     //       }
 
-#if 0 && TOUCH_DRIVER == 0x6336
-    { // タッチスクリーン制御の設定を行います。（必要なければ削除）
-        auto touch = new lgfx::Touch_FT5x06();
-        auto cfg   = touch->config();
-
-        cfg.x_min      = 0;              // タッチスクリーンから得られる最小のX値(生の値)
-        cfg.x_max      = TFT_WIDTH - 1;  // タッチスクリーンから得られる最大のX値(生の値)
-        cfg.y_min      = 0;              // タッチスクリーンから得られる最小のY値(生の値)
-        cfg.y_max      = TFT_HEIGHT - 1; // タッチスクリーンから得られる最大のY値(生の値)
-        cfg.pin_int    = TOUCH_IRQ;      // INTが接続されているピン番号
-        cfg.bus_shared = true;           // 画面と共通のバスを使用している場合 trueを設定
-        cfg.offset_rotation = TOUCH_OFFSET_ROTATION; // 表示とタッチの向きのが一致しない場合の調整 0~7の値で設定
-
-        // SPI接続の場合
-        // cfg.spi_host = VSPI_HOST; // 使用するSPIを選択 (HSPI_HOST or VSPI_HOST)
-        // cfg.freq     = 1000000;   // SPIクロックを設定
-        // cfg.pin_sclk = 18;        // SCLKが接続されているピン番号
-        // cfg.pin_mosi = 23;        // MOSIが接続されているピン番号
-        // cfg.pin_miso = 19;        // MISOが接続されているピン番号
-        // cfg.pin_cs   = 5;         //   CSが接続されているピン番号
-
-        // I2C接続の場合
-        cfg.i2c_port = I2C_TOUCH_PORT;      // 使用するI2Cを選択 (0 or 1)
-        cfg.i2c_addr = I2C_TOUCH_ADDRESS;   // I2Cデバイスアドレス番号
-        cfg.pin_sda  = TOUCH_SDA;           // SDAが接続されているピン番号
-        cfg.pin_scl  = TOUCH_SCL;           // SCLが接続されているピン番号
-        cfg.freq     = I2C_TOUCH_FREQUENCY; // I2Cクロックを設定
-
-        touch->config(cfg);
-        return touch;
+#if TOUCH_DRIVER == 0x2046
+    { // Set the touch screen control. (Delete if not needed) // タッチスクリーン制御の設定を行います。（必要なければ削除）
+      auto touch = new lgfx::Touch_XPT2046();
+      auto cfg   = touch->config();
+      cfg.x_min      = 0;    // Minimum X value (raw value) obtained from touch screen // タッチスクリーンから得られる最小のX値(生の値)
+      cfg.x_max      = TFT_WIDTH - 1;  // Maximum X value (raw value) obtained from the touch screen // タッチスクリーンから得られる最大のX値(生の値)
+      cfg.y_min      = 0;    // Minimum Y value (raw value) obtained from touch screen // タッチスクリーンから得られる最小のY値(生の値)
+      cfg.y_max      = TFT_HEIGHT - 1;  // Maximum Y value (raw value) obtained from the touch screen // タッチスクリーンから得られる最大のY値(生の値)
+      cfg.pin_int    = TOUCH_IRQ;   // Pin number to which INT is connected // INTが接続されているピン番号
+      cfg.bus_shared = true; // Set to true if you are using the same bus as the screen // 画面と共通のバスを使用している場合 trueを設定
+      cfg.offset_rotation = TOUCH_OFFSET_ROTATION;// Adjustment when the display and touch orientation do not match Set with a value from 0 to 7 // 表示とタッチの向きのが一致しない場合の調整 0~7の値で設定
+      cfg.spi_host = VSPI_HOST;// Select the SPI to use (HSPI_HOST or VSPI_HOST) // 使用するSPIを選択 (HSPI_HOST or VSPI_HOST)
+      cfg.freq     = SPI_TOUCH_FREQUENCY;     // Set SPI clock // SPIクロックを設定
+      cfg.pin_sclk = TOUCH_SCLK;     // Pin number to which SCLK is connected // SCLKが接続されているピン番号
+      cfg.pin_mosi = TOUCH_MOSI;     // Pin number to which MOSI is connected // MOSIが接続されているピン番号
+      cfg.pin_miso = TOUCH_MISO;     // Pin number to which MISO is connected // MISOが接続されているピン番号
+      cfg.pin_cs   = TOUCH_CS;     // Pin number to which CS is connected // CSが接続されているピン番号
+      
+      touch->config(cfg);
+      return touch;
     }
 #endif
 
@@ -370,6 +364,11 @@ void LovyanGfx::init(int w, int h)
     /* TFT init */
     LOG_DEBUG(TAG_TFT, F("%s - %d"), __FILE__, __LINE__);
     tft.begin();
+    #if esp32_2432S028R
+    LOG_VERBOSE(TAG_TFT, "Setting up touch calibration for esp32_2432S028R")
+    uint16_t calData[] = { 239, 3926, 233, 265, 3856, 3896, 3714, 308};
+    tft.setTouchCalibrate(calData);
+    #endif
     LOG_DEBUG(TAG_TFT, F("%s - %d"), __FILE__, __LINE__);
     tft.setSwapBytes(true); /* set endianess */
     LOG_INFO(TAG_TFT, F(D_SERVICE_STARTED));
@@ -484,7 +483,7 @@ void IRAM_ATTR LovyanGfx::flush_pixels(lv_disp_drv_t* disp, const lv_area_t* are
 
     tft.startWrite();                            /* Start new TFT transaction */
     tft.setAddrWindow(area->x1, area->y1, w, h); /* set the working window */
-    tft.writePixels((uint16_t*)color_p, len);    /* Write words at once */
+    tft.writePixels((lgfx::rgb565_t *)&color_p->full, w * h);    /* Write words at once */
     tft.endWrite();                              /* terminate TFT transaction */
 
     /* Tell lvgl that flushing is done */
